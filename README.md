@@ -1,4 +1,3 @@
-wp-json-api-ext
-===============
-
-Wordpress JSON API Extension
+Wordpress JSON API Extension (wp-json-api-ext)
+==============================================
+Extension controller for JSON API plugin (Wordpress)
