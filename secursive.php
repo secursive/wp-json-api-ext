@@ -8,20 +8,92 @@ class JSON_API_Secursive_Controller {
 
     // Function for retrieving posts from multiple categories (comma separated input)
     public function get_categories_posts() {
-    global $json_api, $post;
+    global $json_api;
     extract($json_api->query->get(array('id', 'slug')));
     // Retrieving posts for (comma-separated) category id(s) or slug(s)
     if ($id) {
-      $posts = $json_api->introspector->get_posts(array(
-        'cat' => $id
-      ));
+	  return $this->get_categories_posts_internal('id', $id);
     } else if ($slug) {
-      $posts = $json_api->introspector->get_posts(array(
-        'category_name' => $slug
-      ));
+	  return $this->get_categories_posts_internal('slug', $slug);
     } else {
       $json_api->error("Include 'id' or 'slug' var in your request. Separate multiple categories with comma.");
     }
+  }
+
+  // Function for retrieving n posts from groups of categories (input n)
+  public function get_home() {
+    global $json_api;
+	
+	// Names (slugs) of categories (comma separated)
+	$group1_categories_slugs = 'category-a,category-b';
+	$group2_categories_slugs = 'category-c';
+	$group3_categories_slugs = 'category-d';
+
+    extract($json_api->query->get(array('n')));
+	// return n posts - defaulting to 3 posts per group
+	if (!$n || !is_numeric($n)) {
+	  $n = 3;
+	}
+	$n = intval($n);
+    // Retrieving n posts for (comma-separated) category slug(s)
+	$group1_result = $this->get_categories_posts_internal('slug', $group1_categories_slugs, $n);
+	$group2_result = $this->get_categories_posts_internal('slug', $group2_categories_slugs, $n);
+	$group3_result = $this->get_categories_posts_internal('slug', $group3_categories_slugs, $n);
+	return array(
+      'group1' => $group1_result,
+      'group2' => $group2_result,
+      'group3' => $group3_result
+    );
+  }
+  
+  // Function for sending email
+  public function send_email() {
+    global $json_api;
+	
+	// Configuration Parameters:
+	$to_name = 'Receiver';
+	$to_email = 'test@example.com';
+	$subject = 'JSON API Send Email';
+	$from_name = 'Admin';
+	$from_email = get_option('admin_email');;
+
+	// Processing inputs
+    extract($json_api->query->get(array('firstname', 'lastname', 'email', 'phone')));
+    if (!$firstname || !$lastname || !$email || !$phone) {
+      $json_api->error("Include 'firstname', 'lastname', 'email', 'phone' vars in your request.");
+    }
+	$message = "First Name: $firstname\n";
+	$message .= "Last Name: $lastname\n";
+	$message .= "Email: $email\n";
+	$message .= "Phone: $phone\n";
+	
+	// Sending email
+	$headers[] = "From: $from_name <$from_email>";
+	wp_mail($to_email, $subject, $message, $headers);
+	return array();
+  }
+
+  // Internal Function for retrieving posts from multiple categories (comma separated input)
+  // $input-type = 'id' or 'slug'
+  // $categories = comma separated ids or slugs
+  // $output_limit = option input for number of results (n+1 results are returned. By default (-1: all posts are returned))
+  protected function get_categories_posts_internal($input_type, $categories, $output_limit=-1) {
+    global $json_api;
+	wp_reset_query();
+    if ($input_type == 'id') {
+      $posts = $json_api->introspector->get_posts(array(
+        'cat' => $categories,
+		'posts_per_page' => $output_limit
+      ));
+    } else if ($input_type == 'slug') {
+      $posts = $json_api->introspector->get_posts(array(
+        'category_name' => $categories,
+		'posts_per_page' => $output_limit
+      ));
+    } else {
+      return $this->posts_result(array());
+    }
+
     // Retrieving meta data (including MagicFields) for each post
 	foreach ($posts as $post) {
 	  $meta = get_post_meta($post->id);
@@ -41,27 +113,12 @@ class JSON_API_Secursive_Controller {
   }
 
   protected function posts_result($posts) {
-    global $wp_query;
     return array(
       'count' => count($posts),
-      'count_total' => (int) $wp_query->found_posts,
-      'pages' => $wp_query->max_num_pages,
       'posts' => $posts
     );
   }
-  
-  protected function posts_object_result($posts, $object) {
-    global $wp_query;
-    // Convert something like "JSON_API_Category" into "category"
-    $object_key = strtolower(substr(get_class($object), 9));
-    return array(
-      'count' => count($posts),
-      'pages' => (int) $wp_query->max_num_pages,
-      $object_key => $object,
-      'posts' => $posts
-    );
-  }
-  
+
 }
 
 ?>
