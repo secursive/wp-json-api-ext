@@ -9,14 +9,20 @@ class JSON_API_Secursive_Controller {
     // Function for retrieving posts from multiple categories (comma separated input)
     public function get_categories_posts() {
     global $json_api;
-    extract($json_api->query->get(array('id', 'slug')));
+    extract($json_api->query->get(array('id', 'slug', 'count', 'page')));
     // Retrieving posts for (comma-separated) category id(s) or slug(s)
+	if (!$count) {
+	  $count = -1; //Default to All posts
+	}
+	if (!$page) {
+	  $page = 1; // Default to First page
+	}
     if ($id) {
-	  return $this->get_categories_posts_internal('id', $id);
+	  return $this->get_categories_posts_internal('id', $id, $count, $page);
     } else if ($slug) {
-	  return $this->get_categories_posts_internal('slug', $slug);
+	  return $this->get_categories_posts_internal('slug', $slug, $count, $page);
     } else {
-      $json_api->error("Include 'id' or 'slug' var in your request. Separate multiple categories with comma.");
+      $json_api->error("Include 'id' or 'slug' var in your request. Separate multiple categories with comma. 'count' and 'page' vars are optional.");
     }
   }
 
@@ -77,18 +83,21 @@ class JSON_API_Secursive_Controller {
   // $input-type = 'id' or 'slug'
   // $categories = comma separated ids or slugs
   // $output_limit = option input for number of results (n+1 results are returned. By default (-1: all posts are returned))
-  protected function get_categories_posts_internal($input_type, $categories, $output_limit=-1) {
+  // $num_page = option input for the page number to return (default: first page))
+  protected function get_categories_posts_internal($input_type, $categories, $output_limit=-1, $num_page=1) {
     global $json_api;
 	wp_reset_query();
     if ($input_type == 'id') {
       $posts = $json_api->introspector->get_posts(array(
         'cat' => $categories,
-		'posts_per_page' => $output_limit
+		'posts_per_page' => $output_limit,
+		'paged' => $num_page
       ));
     } else if ($input_type == 'slug') {
       $posts = $json_api->introspector->get_posts(array(
         'category_name' => $categories,
-		'posts_per_page' => $output_limit
+		'posts_per_page' => $output_limit,
+		'paged' => $num_page
       ));
     } else {
       return $this->posts_result(array());

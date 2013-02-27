@@ -22,9 +22,14 @@ OR
 
 * id=1,2,3
 
+* (optional) count=5
+* (optional) page=2
+
 http://example.com/api/secursive/get_categories_posts/?dev=1&slug=cata,catb,catc
 
 http://example.com/api/secursive/get_categories_posts/?dev=1&slug=1,2,3
+
+http://example.com/api/secursive/get_categories_posts/?dev=1&slug=cata,catb,catc&count=5&page=2
 
 
 > get_home()
